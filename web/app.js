@@ -8,7 +8,7 @@ import {
 } from "./auth.js";
 (() => {
   'use strict';
-  const STORE_KEY = 'for-workout-data-v1';
+  let STORE_KEY = 'for-workout-data-v1';
   const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const SHORT_DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const SHORT_MONTH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -59,7 +59,7 @@ import {
       return {...d,...obj,profile:{...d.profile,...obj.profile},metrics:{...d.metrics,...obj.metrics},settings:{...d.settings,...obj.settings},plan:Array.isArray(obj.plan)&&obj.plan.length===7?obj.plan:d.plan};
     } catch(e){ return getDefaultState(); }
   }
-  let state=loadState();
+  let state=getDefaultState();
   const $ = sel => document.querySelector(sel);
   const app = $('#app');
   let toastTimer;
@@ -490,7 +490,10 @@ import {
           }
 
           authUser = session.user;
-          authMessageType = 'success';
+STORE_KEY = `for-workout-data-v1:${authUser.id}`;
+state = loadState();
+
+authMessageType = 'success';
           authMessage = '';
 
           renderPage();
@@ -636,6 +639,39 @@ import {
     }
   }
   function registerSW(){if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())return;if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol)){navigator.serviceWorker.register('./sw.js').catch(()=>{});}}
-  app.addEventListener('click',handleClick);app.addEventListener('input',handleInput);app.addEventListener('change',handleChange);app.addEventListener('submit',handleSubmit);
-  renderPage();registerSW();checkReminders();syncNativeReminders();document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkReminders();});window.addEventListener('focus',checkReminders);setInterval(checkReminders,60000);
+  async function restoreAuthSession() {
+  try {
+    const session = await getCurrentSession();
+
+    if (session?.user?.id) {
+      authUser = session.user;
+      STORE_KEY = `for-workout-data-v1:${authUser.id}`;
+      state = loadState();
+      renderPage();
+      syncNativeReminders();
+      checkReminders();
+    } else {
+      authUser = null;
+      app.innerHTML = renderAuthScreen();
+    }
+  } catch (error) {
+    authUser = null;
+    authMessageType = 'error';
+    authMessage = 'Could not restore your session. Please refresh and try again.';
+    app.innerHTML = renderAuthScreen();
+  }
+  }
+  app.addEventListener('click',handleClick);
+app.addEventListener('input',handleInput);
+app.addEventListener('change',handleChange);
+app.addEventListener('submit',handleSubmit);
+
+restoreAuthSession();
+registerSW();
+
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden) checkReminders();
+});
+window.addEventListener('focus',checkReminders);
+setInterval(checkReminders,60000);
 })();
