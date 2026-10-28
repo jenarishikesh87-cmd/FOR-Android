@@ -46,7 +46,7 @@ import {
   const todayISO = () => localDate(new Date());
   const getDefaultState = () => ({
     version:1, profile:{name:'Athlete',username:'',avatar:'',joinedAt:todayISO()},
-    plan:JSON.parse(JSON.stringify(DEFAULT_PLAN)), logs:{}, drafts:{}, restOverrides:{}, selectedDate:todayISO(), view:'home', editPlanDay:new Date().getDay(),
+    plan:Array.from({length:7},()=>({name:'Rest',rest:true,exercises:[]})), logs:{}, drafts:{}, restOverrides:{}, selectedDate:todayISO(), view:'home', editPlanDay:new Date().getDay(),,
     metrics:{weight:[],fat:[],photos:[]}, dailyStats:{}, supplements:[], supplementLogs:{}, snoozedUntil:{}, notified:{}, customExercises:[], friends:[],
     settings:{unit:'kg',restTimer:90,theme:'light',friendShareName:true,friendShareUsername:true,friendSharePRs:true}, libraryFilter:'All', libraryFocus:'All regions', librarySearch:'', progressExercise:'barbell-bench-press', progressPeriod:'3m', calendarOffset:0
   });
