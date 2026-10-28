@@ -318,6 +318,11 @@ import {
   }
   
   function renderPage(){
+  if (!authUser) {
+    app.innerHTML = renderAuthScreen();
+    return;
+  }
+
   applyTheme();
   let content='';switch(state.view){case'home':content=renderHome();break;case'workout':content=renderWorkout();break;case'progress':content=renderProgress();break;case'library':content=renderLibrary();break;case'more':content=renderMore();break;case'routine':content=renderRoutine();break;case'supplements':content=renderSupplements();break;case'body':content=renderBody();break;case'nutrition':content=renderNutrition();break;case'friends':content=renderFriends();break;case'account':content=renderAccount();break;case'settings':content=renderSettings();break;case'calendar':content=renderCalendar();break;default:state.view='home';content=renderHome();}app.innerHTML=`<main class="page">${content}</main>`+bottomNav();}
   function go(view){state.view=view;save();renderPage();window.scrollTo({top:0,behavior:'smooth'});}
@@ -476,11 +481,18 @@ import {
 
           if (result?.error) throw result.error;
 
-          authMessageType = 'success';
-          authMessage = 'Login successful.';
+                    const session = await getCurrentSession();
 
-          // Session and account-specific data loading are connected
-          // in the next step.
+          if (!session?.user?.id) {
+            throw new Error(
+              'Login succeeded, but the user session could not be loaded. Please try again.'
+            );
+          }
+
+          authUser = session.user;
+          authMessageType = 'success';
+          authMessage = '';
+
           renderPage();
           return;
         }
