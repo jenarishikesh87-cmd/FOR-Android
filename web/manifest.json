@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "FOR \u2014 Workout Log",
+  "short_name": "FOR",
+  "description": "Your personal workout plan, training log, progress dashboard, and fitness toolkit.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#09090b",
+  "theme_color": "#ed1c24",
+  "icons": [
+    {
+      "src": "icons/for-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/for-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
