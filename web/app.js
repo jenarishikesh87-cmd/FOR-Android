@@ -243,7 +243,8 @@ import {
   let authMessage = '';
   let authMessageType = 'error';
   let pendingAuthEmail = '';
-
+  let authUser = null;
+  
   function renderAuthScreen() {
     const isSignup = authMode === 'signup';
     const isOtp = authMode === 'otp';
