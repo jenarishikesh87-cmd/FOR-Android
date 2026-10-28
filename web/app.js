@@ -368,6 +368,27 @@ import {
         })();
         break;
         
+case 'auth-logout': {
+  try {
+    await logoutUser();
+  } catch (error) {
+    console.error('Logout failed:', error);
+    alert('Could not log out. Please try again.');
+    return;
+  }
+
+  authUser = null;
+  authMode = 'login';
+  authMessage = '';
+  authMessageType = 'error';
+  pendingAuthEmail = '';
+  state = getDefaultState();
+  STORE_KEY = 'for-workout-data-v1';
+
+  app.innerHTML = renderAuthScreen();
+  return;
+}
+        
       case'set-view':go(el.dataset.view);break;
       case'toggle-theme':state.settings.theme=state.settings.theme==='dark'?'light':'dark';save();renderPage();notify(`${state.settings.theme==='dark'?'Dark':'Light'} theme enabled.`);break;
       case'choose-profile-photo':$('#profilePhotoInput')?.click();break;
