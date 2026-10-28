@@ -1,7 +1,7 @@
-
 import {
   registerUser,
   verifyEmailOtp,
+  resendEmailOtp,
   loginUser,
   logoutUser,
   getCurrentSession
