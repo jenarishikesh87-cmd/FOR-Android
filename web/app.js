@@ -335,6 +335,33 @@ import {
   function addLibraryToPlan(id){const date=state.selectedDate||todayISO(),di=dateDay(date);const p=ensurePlanDay(di);addPlanExercise(di,id,3,'8–12');if(p.restOverrides)delete p.restOverrides;notify(`${exerciseById(id).name} added to ${DOW[di]}'s plan.`);renderPage();}
   function handleClick(e){const el=e.target.closest('[data-action]');if(!el)return;const a=el.dataset.action;
     switch(a){
+        
+      case 'auth-switch':
+        authMode = el.dataset.mode === 'signup' ? 'signup' : 'login';
+        authMessage = '';
+        app.innerHTML = renderAuthScreen();
+        break;
+
+      case 'auth-back':
+        authMode = 'login';
+        authMessage = '';
+        app.innerHTML = renderAuthScreen();
+        break;
+
+      case 'auth-resend':
+        (async () => {
+          try {
+            await resendEmailOtp({ email: pendingAuthEmail });
+            authMessageType = 'success';
+            authMessage = 'A new verification code has been requested.';
+          } catch (error) {
+            authMessageType = 'error';
+            authMessage = error?.message || 'Could not resend the verification code.';
+          }
+          app.innerHTML = renderAuthScreen();
+        })();
+        break;
+        
       case'set-view':go(el.dataset.view);break;
       case'toggle-theme':state.settings.theme=state.settings.theme==='dark'?'light':'dark';save();renderPage();notify(`${state.settings.theme==='dark'?'Dark':'Light'} theme enabled.`);break;
       case'choose-profile-photo':$('#profilePhotoInput')?.click();break;
