@@ -67,7 +67,7 @@ jobs:
         run: npx cap add android
 
       - name: Add Android notification permissions and icon
-        run: node Scripts/patch-android.mjs
+        run: node scripts/patch-android.mjs
 
       - name: Sync native app
         run: npx cap sync android
