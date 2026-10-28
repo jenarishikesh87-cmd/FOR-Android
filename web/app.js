@@ -238,6 +238,84 @@ import {
     <div class="card"><div class="weight-bold">Data backup</div><p class="small muted">Export saves your profile, routine, workout logs, supplement schedule, daily logs and measurements as a JSON file. Photos can increase file size.</p><div class="grid-2"><button class="btn btn-full" data-action="export-backup">Export backup</button><label class="btn btn-outline btn-full" for="backupFile">Restore backup</label></div><input id="backupFile" type="file" accept="application/json,.json" style="display:none"><div class="small muted" style="margin-top:10px">Restoring replaces the current FOR data on this device. Export a backup before restoring.</div></div>
     <div class="card"><div class="weight-bold">What is local-first?</div><p class="small muted">In this version, your information stays in browser storage on this device. It is not uploaded anywhere. Clearing browser data can remove it, so keep a backup in a safe place.</p></div><div class="card danger-zone"><div class="weight-bold" style="color:var(--red)">Reset this device's FOR data</div><p class="small muted">This permanently clears the records stored in this browser. Export a backup first if you may need them.</p><button class="btn btn-danger btn-full" data-action="reset-data">Reset all local data</button></div>`;}
   function renderCalendar(){const offset=state.calendarOffset||0,start=calendarStart(offset);return `${heading('Training calendar','Training and rest are both valid plan states')}<div class="card"><div class="row-between"><button class="icon-btn" data-action="calendar-shift" data-shift="-1">‹</button><div class="weight-bold">${calendarWeekLabel(offset)}</div><button class="icon-btn" data-action="calendar-shift" data-shift="1">›</button></div><div style="height:13px"></div>${renderCalendarWeek(offset)}<div class="rule"></div><div class="grid-2"><button class="btn btn-outline" data-action="select-date" data-date="${todayISO()}">Go to today</button><button class="btn btn-soft" data-action="set-view" data-view="workout">Open selected day</button></div></div><div class="section-title">Dates this week</div><div class="card">${Array.from({length:7},(_,i)=>plusDays(start,i)).map(iso=>{const l=state.logs[iso],p=dayPlanForDate(iso);return `<button style="width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);padding:11px 0" data-action="select-date" data-date="${iso}"><div class="row-between"><div><div class="weight-bold">${esc(fmtDate(iso))}</div><div class="small muted">${l?.type==='workout'?'Workout completed':p.rest?'Rest day':`${p.name} · ${p.exercises.length} exercises`}</div></div><span class="chip ${l?.type==='workout'?'chip-green':p.rest?'chip-orange':''}">${l?.type==='workout'?'Done':p.rest?'Rest':'Planned'}</span></div></button>`}).join('')}</div>`;}
+  
+  let authMode = 'login';
+  let authMessage = '';
+  let authMessageType = 'error';
+  let pendingAuthEmail = '';
+
+  function renderAuthScreen() {
+    const isSignup = authMode === 'signup';
+    const isOtp = authMode === 'otp';
+
+    const field = (label, name, type, placeholder, extra = '') => `
+      <label class="form-field">
+        ${label}
+        <input class="text-input" name="${name}" type="${type}"
+          placeholder="${placeholder}" ${extra} required>
+      </label>`;
+
+    const fields = isOtp
+      ? field('8-digit email verification code', 'token', 'text',
+          'Enter your OTP', 'inputmode="numeric" maxlength="8" autocomplete="one-time-code"')
+      : `${isSignup ? field('Username', 'username', 'text',
+          'Choose a username', 'minlength="3" maxlength="24" autocomplete="username"') : ''}
+         ${field('Email address', 'email', 'email',
+          'you@example.com', 'autocomplete="email"')}
+         ${field('Password', 'password', 'password',
+          'Enter your password', 'minlength="6" autocomplete="' +
+          (isSignup ? 'new-password' : 'current-password') + '"')}`;
+
+    const title = isOtp ? 'Verify your email'
+      : isSignup ? 'Create your account' : 'Welcome back';
+
+    const subtitle = isOtp
+      ? `Enter the verification code sent to ${esc(pendingAuthEmail)}.`
+      : isSignup
+        ? 'Start your fitness journey with FOR.'
+        : 'Sign in to continue your training.';
+
+    return `
+      <main style="min-height:100dvh;display:grid;place-items:center;
+        padding:24px;background:var(--bg);">
+        <section class="card" style="width:100%;max-width:420px;
+          padding:24px;box-sizing:border-box;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <div style="font-size:42px;font-weight:900;letter-spacing:-2px;">
+              F<span style="color:var(--red);">O</span>R
+            </div>
+            <div class="small muted">FITNESS. OWNERSHIP. RESULTS.</div>
+          </div>
+          <h1 style="margin:0 0 8px;">${title}</h1>
+          <p class="small muted">${subtitle}</p>
+          ${authMessage ? `
+            <div class="notice ${authMessageType === 'error' ? 'notice-warn' : ''}"
+              role="status">${esc(authMessage)}</div>` : ''}
+          <form data-form="auth-${authMode}" class="form-stack"
+            style="margin-top:18px;">
+            ${fields}
+            <button class="btn btn-full" type="submit">
+              ${isOtp ? 'Verify email' : isSignup ? 'Create account' : 'Log in'}
+            </button>
+          </form>
+          ${isOtp ? `
+            <button class="btn btn-outline btn-full" style="margin-top:10px;"
+              data-action="auth-resend">Resend verification code</button>
+            <button class="inline-link" style="margin-top:16px;"
+              data-action="auth-back">Back to login</button>
+          ` : `
+            <p class="small" style="text-align:center;margin-top:18px;">
+              ${isSignup ? 'Already have an account?' : 'New to FOR?'}
+              <button type="button" class="inline-link"
+                data-action="auth-switch" data-mode="${isSignup ? 'login' : 'signup'}">
+                ${isSignup ? 'Log in' : 'Create account'}
+              </button>
+            </p>
+          `}
+        </section>
+      </main>`;
+  }
+  
   function renderPage(){
   applyTheme();
   let content='';switch(state.view){case'home':content=renderHome();break;case'workout':content=renderWorkout();break;case'progress':content=renderProgress();break;case'library':content=renderLibrary();break;case'more':content=renderMore();break;case'routine':content=renderRoutine();break;case'supplements':content=renderSupplements();break;case'body':content=renderBody();break;case'nutrition':content=renderNutrition();break;case'friends':content=renderFriends();break;case'account':content=renderAccount();break;case'settings':content=renderSettings();break;case'calendar':content=renderCalendar();break;default:state.view='home';content=renderHome();}app.innerHTML=`<main class="page">${content}</main>`+bottomNav();}
