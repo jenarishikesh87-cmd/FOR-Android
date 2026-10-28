@@ -396,13 +396,163 @@ import {
     if(el.id==='friendFile'){importFriendFile(el.files?.[0]);el.value='';return;}
   }
   function formData(form){return Object.fromEntries(new FormData(form).entries());}
-  function handleSubmit(e){const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const type=form.dataset.form,fd=new FormData(form);
-    if(type==='profile'){state.profile.name=String(fd.get('name')||'Athlete').trim()||'Athlete';state.profile.username=String(fd.get('username')||'').trim().replace(/^@/,'');save();renderPage();notify('Profile saved on this device.');}
-    if(type==='daily'){const date=String(fd.get('date')||todayISO());state.dailyStats[date]={steps:Number(fd.get('steps')||0),sleep:fd.get('sleep')===''?null:Number(fd.get('sleep')),calories:fd.get('calories')===''?null:Number(fd.get('calories')),protein:fd.get('protein')===''?null:Number(fd.get('protein')),stepGoal:Number(fd.get('stepGoal')||8000)};state.selectedDate=date;save();renderPage();notify('Daily log saved.');}
-    if(type==='body-metric'){const kind=String(fd.get('type')),date=String(fd.get('date')||todayISO()),raw=Number(fd.get('value'));if(!Number.isFinite(raw)||raw<=0){notify('Enter a valid positive measurement.');return;}const value=kind==='weight'?displayToKg(raw):raw;state.metrics[kind].push({id:cryptoId(),date,value});state.metrics[kind].sort((a,b)=>a.date.localeCompare(b.date));save();renderPage();notify('Measurement saved.');}
-    if(type==='supplement'){const days=fd.getAll('days').map(Number);if(!days.length){notify('Choose at least one active day.');return;}state.supplements.push({id:cryptoId(),name:String(fd.get('name')||'').trim(),dose:String(fd.get('dose')||'').trim(),time:String(fd.get('time')||'08:00'),days,enabled:true,createdAt:todayISO()});save();syncNativeReminders();renderPage();notify('Supplement reminder added.');}
-    if(type==='custom-exercise'){const name=String(fd.get('name')||'').trim();if(!name)return;const id=`custom-${slug(name)}-${Math.random().toString(36).slice(2,6)}`;state.customExercises.push({id,name,muscle:String(fd.get('muscle')||'Other'),focus:String(fd.get('focus')||'Custom region'),equipment:String(fd.get('equipment')||'Other'),custom:true});save();renderPage();notify('Custom exercise saved to your library.');}
-  }
+
+  
+  async function handleSubmit(e) {
+    const form = e.target.closest('form[data-form]');
+    if (!form) return;
+
+    e.preventDefault();
+
+    const type = form.dataset.form;
+    const fd = new FormData(form);
+
+    if (type.startsWith('auth-')) {
+      try {
+        const submitButton = form.querySelector('[type="submit"]');
+        if (submitButton) submitButton.disabled = true;
+
+        authMessage = '';
+        const email = String(fd.get('email') || pendingAuthEmail)
+          .trim().toLowerCase();
+
+        if (type === 'auth-signup') {
+          const result = await registerUser({
+            username: String(fd.get('username') || '').trim(),
+            email,
+            password: String(fd.get('password') || '')
+          });
+
+          if (result?.error) throw result.error;
+
+          pendingAuthEmail = email;
+          authMode = 'otp';
+          authMessageType = 'success';
+          authMessage = 'Verification code requested. Check your email.';
+        } else if (type === 'auth-otp') {
+          const result = await verifyEmailOtp({
+            email: pendingAuthEmail,
+            token: String(fd.get('token') || '').trim()
+          });
+
+          if (result?.error) throw result.error;
+
+          authMode = 'login';
+          authMessageType = 'success';
+          authMessage = 'Email verified. You can now log in.';
+        } else if (type === 'auth-login') {
+          const result = await loginUser({
+            email,
+            password: String(fd.get('password') || '')
+          });
+
+          if (result?.error) throw result.error;
+
+          authMessageType = 'success';
+          authMessage = 'Login successful.';
+
+          // Session and account-specific data loading are connected
+          // in the next step.
+          renderPage();
+          return;
+        }
+
+        app.innerHTML = renderAuthScreen();
+      } catch (error) {
+        authMessageType = 'error';
+        authMessage = error?.message || 'Authentication failed. Please try again.';
+        app.innerHTML = renderAuthScreen();
+      }
+      return;
+    }
+
+    if (type === 'profile') {
+      state.profile.name = String(fd.get('name') || 'Athlete').trim() || 'Athlete';
+      state.profile.username = String(fd.get('username') || '').trim().replace(/^@/, '');
+      save();
+      renderPage();
+      notify('Profile saved on this device.');
+    }
+
+    if (type === 'daily') {
+      const date = String(fd.get('date') || todayISO());
+      state.dailyStats[date] = {
+        steps: Number(fd.get('steps') || 0),
+        sleep: fd.get('sleep') === '' ? null : Number(fd.get('sleep')),
+        calories: fd.get('calories') === '' ? null : Number(fd.get('calories')),
+        protein: fd.get('protein') === '' ? null : Number(fd.get('protein')),
+        stepGoal: Number(fd.get('stepGoal') || 8000)
+      };
+      state.selectedDate = date;
+      save();
+      renderPage();
+      notify('Daily log saved.');
+    }
+
+    if (type === 'body-metric') {
+      const kind = String(fd.get('type'));
+      const date = String(fd.get('date') || todayISO());
+      const raw = Number(fd.get('value'));
+
+      if (!Number.isFinite(raw) || raw <= 0) {
+        notify('Enter a valid positive measurement.');
+        return;
+      }
+
+      const value = kind === 'weight' ? displayToKg(raw) : raw;
+      state.metrics[kind].push({ id: cryptoId(), date, value });
+      state.metrics[kind].sort((a, b) => a.date.localeCompare(b.date));
+      save();
+      renderPage();
+      notify('Measurement saved.');
+    }
+
+    if (type === 'supplement') {
+      const days = fd.getAll('days').map(Number);
+
+      if (!days.length) {
+        notify('Choose at least one active day.');
+        return;
+      }
+
+      state.supplements.push({
+        id: cryptoId(),
+        name: String(fd.get('name') || '').trim(),
+        dose: String(fd.get('dose') || '').trim(),
+        time: String(fd.get('time') || '08:00'),
+        days,
+        enabled: true,
+        createdAt: todayISO()
+      });
+
+      save();
+      syncNativeReminders();
+      renderPage();
+      notify('Supplement reminder added.');
+    }
+
+    if (type === 'custom-exercise') {
+      const name = String(fd.get('name') || '').trim();
+      if (!name) return;
+
+      const id = `custom-${slug(name)}-${Math.random().toString(36).slice(2, 6)}`;
+
+      state.customExercises.push({
+        id,
+        name,
+        muscle: String(fd.get('muscle') || 'Other'),
+        focus: String(fd.get('focus') || 'Custom region'),
+        equipment: String(fd.get('equipment') || 'Other'),
+        custom: true
+      });
+
+      save();
+      renderPage();
+      notify('Custom exercise saved to your library.');
+    }
+        }
+  
+
   function cryptoId(){return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,9)}`;}
   async function handleProfilePhotoFile(file){if(!file)return;if(!file.type.startsWith('image/')){notify('Choose an image file.');return;}try{const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});const img=new Image();img.src=data;await img.decode();const side=Math.min(img.width,img.height),sx=(img.width-side)/2,sy=(img.height-side)/2,canvas=document.createElement('canvas');canvas.width=320;canvas.height=320;canvas.getContext('2d').drawImage(img,sx,sy,side,side,0,0,320,320);state.profile.avatar=canvas.toDataURL('image/jpeg',.78);save();renderPage();notify('Profile picture saved on this device.');}catch(err){notify('Could not process that image. Try another photo.');}}
   async function handlePhotoFile(file){if(!file)return;if(!file.type.startsWith('image/')){notify('Choose an image file.');return;}try{const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});const img=new Image();img.src=data;await img.decode();const max=760,ratio=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*ratio);canvas.height=Math.round(img.height*ratio);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const compressed=canvas.toDataURL('image/jpeg',.68);state.metrics.photos.push({id:cryptoId(),date:$('#photoDate')?.value||todayISO(),pose:$('#photoPose')?.value||'Front',data:compressed});save();renderPage();notify('Progress photo saved locally.');}catch(err){notify('Could not process that image. Try a smaller photo.');}}
