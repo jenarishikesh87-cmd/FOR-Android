@@ -207,7 +207,14 @@ import {
   }
   function renderMore(){return `${heading('More','Manage the rest of your training toolkit')}<div class="more-grid">${[
       ['supplements','💊','Supplements','Dose times and reminders'],['body','⚖️','Body & photos','Weight, body fat, progress photos'],['nutrition','🥗','Daily health log','Steps, sleep, calories, protein'],['calendar','🗓️','Training calendar','Workouts and rest days'],['friends','👥','Friends','Share and compare snapshots'],['account','🙂','Account','Your local profile'],['settings','⚙️','Backup & settings','Export data, units, restore'],['routine','📋','Weekly plan','Edit your repeating routine']
-    ].map(([view,icon,title,sub])=>`<button class="menu-card" data-action="set-view" data-view="${view}"><span class="menu-icon">${icon}</span><span><span class="menu-title">${title}</span><span class="menu-sub" style="display:block">${sub}</span></span></button>`).join('')}</div><div class="notice" style="margin-top:17px"><strong>Local-first mode.</strong> FOR currently saves to this device. Cloud accounts and live friend syncing will be connected in a later phase.</div><div class="footer-note">FOR · Fitness. Ownership. Results.</div>`;}
+    ].map(([view,icon,title,sub])=>`<button class="menu-card" data-action="set-view" data-view="${view}"><span class="menu-icon">${icon}</span><span><span class="menu-title">${title}</span><span class="menu-sub" style="display:block">${sub}</span></span></button>`).join('')}</div><div class="notice" style="margin-top:17px"><strong>Local-first mode.</strong> FOR currently saves to this device. Cloud accounts and live friend syncing will be connected in a later phase.</div><div class="card" style="margin-top:16px">
+  <div class="weight-bold">Account</div>
+  <p class="small muted">Signed in as ${esc(authUser?.email || 'FOR user')}</p>
+  <button class="btn btn-outline btn-full" data-action="auth-logout">
+    Log out
+  </button>
+</div>
+<div class="footer-note">FOR · Fitness. Ownership. Results.</div>`;}
   function renderSupplements(){
     const date=state.selectedDate||todayISO(),di=dateDay(date);
     const eligible=state.supplements.filter(s=>(s.days||[0,1,2,3,4,5,6]).includes(di));
@@ -368,26 +375,31 @@ import {
         })();
         break;
         
+
+
 case 'auth-logout': {
-  try {
-    await logoutUser();
-  } catch (error) {
-    console.error('Logout failed:', error);
-    alert('Could not log out. Please try again.');
-    return;
-  }
+  (async () => {
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.error('Logout failed:', error);
+      alert('Could not log out. Please try again.');
+      return;
+    }
 
-  authUser = null;
-  authMode = 'login';
-  authMessage = '';
-  authMessageType = 'error';
-  pendingAuthEmail = '';
-  state = getDefaultState();
-  STORE_KEY = 'for-workout-data-v1';
+    authUser = null;
+    authMode = 'login';
+    authMessage = '';
+    authMessageType = 'error';
+    pendingAuthEmail = '';
+    state = getDefaultState();
+    STORE_KEY = 'for-workout-data-v1';
 
-  app.innerHTML = renderAuthScreen();
-  return;
+    app.innerHTML = renderAuthScreen();
+  })();
+  break;
 }
+
         
       case'set-view':go(el.dataset.view);break;
       case'toggle-theme':state.settings.theme=state.settings.theme==='dark'?'light':'dark';save();renderPage();notify(`${state.settings.theme==='dark'?'Dark':'Light'} theme enabled.`);break;
