@@ -1,3 +1,11 @@
+
+import {
+  registerUser,
+  verifyEmailOtp,
+  loginUser,
+  logoutUser,
+  getCurrentSession
+} from "./auth.js";
 (() => {
   'use strict';
   const STORE_KEY = 'for-workout-data-v1';
